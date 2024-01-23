@@ -26,5 +26,16 @@
       <p>No comments</p>
   
   {% endfor %}
+
+  <!-- SIMILAR POSTS  -->
+  <h2>Similar Posts</h2>
+  {% for post in similar_posts %}
+    <p>
+      <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
+    </p>
+  {% empty %}
+   There are no similar posts yet
+  {% endfor %}
+
   {% include "blogapp/post/includes/comment_form.html" %}
 {% endblock %}
