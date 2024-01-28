@@ -3,10 +3,14 @@ from django.http import Http404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
 from django.views.decorators.http import require_POST
-from .models import Post, Comment
-from .forms import CommentForm
 from taggit.models import Tag
 from django.db.models import Count
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, \
+                                            TrigramSimilarity
+from .forms import SearchForm
+from .models import Post, Comment
+from .forms import CommentForm
+
 
 class PostListView(ListView):
     queryset = Post.published.all()
@@ -70,3 +74,20 @@ def post_comment(request, post_id):
 
     return render(request, 'blogapp/post/comment.html',
                   {'post':post, 'form':form, 'comment':comment})
+
+def post_search(request):
+    form = SearchForm
+    query = None
+    results = []
+
+    if 'query' in request.GET:
+        form = SearchForm(request.GET)
+        if form.is_valid():
+            query = form.cleaned_data['query']
+            search_vector = SearchVector('title', weight='A') + \
+                SearchVector('body', weight='B')
+            search_query = SearchQuery(query)
+            results = Post.published.annotate(similarity=TrigramSimilarity('body', query), )\
+                .filter(similarity__gte=0.4).order_by('-similarity')
+    return render(request, 'blogapp/post/search.html',
+                  {'form': form, 'query': query, 'results': results})
